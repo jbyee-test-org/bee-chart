@@ -1,0 +1,23 @@
+# chart OCI 릴리스 (G6 — Phase 2 형태로 전환: 같은 버전 필드, 해석만 변경).
+# Chart.yaml 의 version 으로 ghcr 에 push — 모듈 pin 이 그대로 oci --version 이 된다.
+# 보안: 보간은 env 경유만(인젝션 안전 패턴).
+name: chart-release
+on:
+  workflow_dispatch:
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      OWNER: ${{ github.repository_owner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: helm 로그인 + package + push
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          helm package chart/
+          helm push bee-module-*.tgz "oci://ghcr.io/$OWNER/charts"

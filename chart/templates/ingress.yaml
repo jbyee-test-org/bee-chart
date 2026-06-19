@@ -1,0 +1,29 @@
+{{- /* routing → Ingress (host=values 좌표·paths=어휘 spec.routing). **class·주석은 provider 코덱**
+       (G28 ③ — `bee.routing.{class,annotations}` 이 provider[kong/nginx]별로 렌더). 부속 CR(KongPlugin)은
+       kongplugin.yaml 이 provider 가드. 파생은 전부 차트(규칙 1). */ -}}
+{{- if .Values.spec.routing }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ include "bee.namespace" $ }}
+  {{- with (include "bee.routing.annotations" $) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ include "bee.routing.class" $ }}
+  rules:
+    - host: {{ .Values.host }}
+      http:
+        paths:
+          {{- range .Values.spec.routing }}
+          - path: {{ .path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $.Release.Name }}
+                port:
+                  number: {{ .port }}
+          {{- end }}
+{{- end }}

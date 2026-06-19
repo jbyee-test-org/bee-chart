@@ -1,0 +1,17 @@
+{{- /* grants 어휘 → R__grants.sql 파생 (규칙 1 — 차트가 한다). 모듈 role/user = bee_<module>.
+       대상 schema 가 아직 없으면 Job 이 재시도(backoff) — 소유 모듈 migrate 후 수렴.
+       **G44**: 중립 vocab(grants:[{schema,access}]) → 벤더 SQL 은 `bee.db.grantsSql`(_db.tpl) 코덱이 dispatch. */ -}}
+{{- with .Values.spec.db }}
+{{- if .grants }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Release.Name }}-grants
+  namespace: {{ include "bee.namespace" $ }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-200"   # Flyway Job(음수 wave)이 마운트 — 가장 먼저
+data:
+  R__grants.sql: |
+{{ include "bee.db.grantsSql" $ | indent 4 }}
+{{- end }}
+{{- end }}

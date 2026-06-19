@@ -1,0 +1,26 @@
+{{- /* routing kong provider 의 부속 CR — auth/rateLimit → KongPlugin. **코덱 가드(G28 ③)**:
+       provider=kong 일 때만 렌더(nginx 는 ingress 주석으로, 부속 CR 없음). */ -}}
+{{- if eq (include "bee.routing.provider" $) "kong" }}
+{{- range $i, $r := .Values.spec.routing }}
+{{- if $r.rateLimit }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ $.Release.Name }}-ratelimit-{{ $i }}
+  namespace: {{ include "bee.namespace" $ }}
+plugin: rate-limiting
+config:
+  minute: {{ $r.rateLimit.minute }}
+---
+{{- end }}
+{{- if eq ($r.auth | default "") "jwt" }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ $.Release.Name }}-jwt-{{ $i }}
+  namespace: {{ include "bee.namespace" $ }}
+plugin: jwt
+---
+{{- end }}
+{{- end }}
+{{- end }}

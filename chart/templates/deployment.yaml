@@ -1,0 +1,59 @@
+{{- /* 이미지 = registry(values-env) / image.name(module.yaml) + digest(prod) | tag(local).
+       image 생략 = **workload 없는 schema 모듈**(G21) → Deployment 렌더 안 함(db.migrations·grants 만 소유). */ -}}
+{{- if .Values.spec.image }}
+{{- $tagref := printf ":%s" (.Values.imageTag | default "latest") -}}
+{{- if .Values.imageDigest }}{{ $tagref = printf "@%s" .Values.imageDigest }}{{ end -}}
+{{- /* G37 리소스: spec.uses(논리 참조) → .Values.resources(platform 프로파일 — bee 전달·values override)
+       룩업·렌더(rule 1 — 파생은 차트). compute→container.resources · storage→PVC+mount(+Recreate). */ -}}
+{{- $u := .Values.spec.uses | default dict -}}
+{{- $res := .Values.resources | default dict -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ include "bee.namespace" $ }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  {{- if $u.storage }}
+  strategy: { type: Recreate }   {{- /* RWO PVC — 롤링 시 두 pod 가 같은 볼륨 못 붙음(G15 precedent) */}}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Release.Name }}
+          image: "{{ .Values.registry }}/{{ .Values.spec.image.name }}{{ $tagref }}"
+          {{- if .Values.imageDigest }}{{- else }}
+          imagePullPolicy: Never   {{- /* 로컬 tag 는 pull 안 함 */}}
+          {{- end }}
+          ports:
+            {{- range .Values.spec.routing }}
+            - containerPort: {{ .port }}
+            {{- end }}
+          {{- if .Values.spec.secrets }}
+          envFrom:
+            - secretRef:
+                name: {{ .Release.Name }}-secrets
+          {{- end }}
+          {{- with index ($res.compute | default dict) ($u.compute | default "") }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $u.storage }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .mount }}
+          {{- end }}
+      {{- with $u.storage }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: {{ $.Release.Name }}-data }
+      {{- end }}
+{{- end }}

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: bee-module
+description: >-
+  bee 공용 모듈 차트 — **엔진**. module.yaml(논리) + values-<env>(좌표)에서 매니페스트를
+  *helm 이* 파생한다(GENESIS 규칙 1). 입력 계약은 values.schema.json(G9) — helm 이 render
+  시점에 검증하고, 공식 검증은 CI lint(규칙 2). CLI 는 이 차트를 `helm template` 으로
+  부를 뿐(기계적 배치). 모듈은 spec.chart.version 으로 이 차트를 pin 한다(G6).
+type: application
+version: 0.5.9   # minor(G45): db 코덱에 provider별 jdbcParams(접속 옵션 — mysql useSSL/allowPublicKeyRetrieval). mysql live-proven. psql 무영향(params 없음). (0.5.8=G44 db 코덱)

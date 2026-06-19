@@ -1,0 +1,239 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "bee-module merged values (module.yaml + values-<env>)",
+  "description": "helm 에 -f module.yaml -f values-<env>.yaml 로 병합 입력되는 문서의 계약. required 는 최소만 — 어휘 확장은 additive(GENESIS G 어휘 로드맵).",
+  "type": "object",
+  "required": [
+    "metadata",
+    "spec",
+    "env",
+    "namespace"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "description": "image 생략 시 workload 없는 schema 모듈(G21) — Deployment 미렌더, db.migrations 만 소유.",
+      "required": [
+        "chart"
+      ],
+      "properties": {
+        "image": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "chart": {
+          "type": "object",
+          "required": [
+            "version"
+          ],
+          "properties": {
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "description": "모듈의 chart 버전 pin (G6 — 모듈 pin 일원화). 불일치는 CLI 경고 + CI lint."
+        },
+        "product": {
+          "type": "string"
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "uses": {
+          "type": "object",
+          "description": "리소스 = 논리 참조(G37) → platform `resources` 프로파일. origin-free(규칙 4) — 구체값은 platform/values. chart 가 룩업·렌더.",
+          "properties": {
+            "compute": { "type": "string", "description": "platform resources.compute 프로파일명(small·…)" },
+            "storage": {
+              "type": "object",
+              "required": ["profile", "mount"],
+              "properties": {
+                "profile": { "type": "string", "description": "platform resources.storage 프로파일명(persistent·…)" },
+                "mount": { "type": "string", "description": "컨테이너 마운트 경로(모듈 지식)" }
+              }
+            }
+          }
+        },
+        "routing": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "port"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer"
+              },
+              "auth": {
+                "type": "string"
+              },
+              "rateLimit": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "group",
+              "property"
+            ],
+            "properties": {
+              "group": {
+                "type": "string"
+              },
+              "property": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "db": {
+          "type": "object",
+          "description": "db 어휘(0.4.0, G14·G18 · target=G44) — target=db 방언(모듈-선택, 기본값 없음·필수), name=(kind,name) 공유 그룹(B안), schema=owner 소유 스키마 마커(grant 불변식), migrations=SQL 디렉토리, grants=cross-schema 명시 선언.",
+          "properties": {
+            "target": {
+              "type": "string",
+              "enum": ["psql", "mysql"],
+              "description": "db 방언(G44) — 모듈이 *선택*(자기 SQL 이 방언-종속). platform provides.db[].target 에 매칭. 기본값 없음 — 미선언 시 실패."
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "이 모듈이 소유(migrations 가 생성)하는 스키마 — cross-schema grant 의 owner 마커(G18①). member 는 생략."
+            },
+            "migrations": {
+              "type": "string"
+            },
+            "grants": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "schema"
+                ],
+                "properties": {
+                  "schema": {
+                    "type": "string"
+                  },
+                  "access": {
+                    "type": "string",
+                    "enum": [
+                      "read"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "name",
+            "target"
+          ]
+        }
+      }
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 1,
+      "description": "배치 좌표 — bee up/publish 가 platform product→ns 룩업으로 주입(G12④). 모듈 파일에 쓰지 않는다."
+    },
+    "env": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry": {
+      "type": "string",
+      "minLength": 1
+    },
+    "imageTag": {
+      "type": "string"
+    },
+    "imageDigest": {
+      "type": "string"
+    },
+    "host": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ingressClass": {
+      "type": "string"
+    },
+    "asmPrefix": {
+      "type": "string"
+    },
+    "secretStore": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "dbHost": {
+      "type": "string",
+      "description": "DB 좌표 — spec.db 선언 시 필요"
+    },
+    "dbName": {
+      "type": "string"
+    },
+    "dbUser": {
+      "type": "string"
+    },
+    "dbPassword": {
+      "type": "string",
+      "description": "데모 — 실환경 ESO(D13)"
+    },
+    "dbMigrationsHash": {
+      "type": "string",
+      "description": "마이그레이션 페이로드(SQL+grants) content-hash — bee 가 좌표로 주입(G18②). Flyway Job 이름 접미사가 되어 내용 변경 시에만 재실행. 모듈 파일에 쓰지 않는다."
+    },
+    "resources": {
+      "type": "object",
+      "description": "리소스 프로파일 catalog(G37) — platform.yaml spec.resources 를 bee 가 전달(values-<env> override). chart 가 spec.uses 로 룩업. compute={profile:{requests,limits}} · storage={profile:{storageClass,size}}.",
+      "properties": {
+        "compute": { "type": "object" },
+        "storage": { "type": "object" }
+      }
+    }
+  }
+}

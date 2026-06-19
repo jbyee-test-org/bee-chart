@@ -1,0 +1,21 @@
+{{- /* G37 영속 — spec.uses.storage → platform `resources.storage.<profile>`({storageClass,size}) 룩업·렌더.
+       모듈은 논리 `uses: {storage: {profile, mount}}` 만(origin-free 규칙 4); class·size 는 platform 지식.
+       선언+렌더이지 프로비저닝 아님 — StorageClass 가 볼륨을 실제 프로비전(G26). RWO + Deployment Recreate(G15). */ -}}
+{{- with (.Values.spec.uses | default dict).storage }}
+{{- $sp := index (($.Values.resources | default dict).storage | default dict) .profile }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Release.Name }}-data
+  namespace: {{ include "bee.namespace" $ }}
+  labels:
+    app.kubernetes.io/name: {{ $.Release.Name }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with $sp.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $sp.size | default "1Gi" }}
+{{- end }}
