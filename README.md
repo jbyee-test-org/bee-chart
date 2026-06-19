@@ -31,3 +31,7 @@ seam 인터페이스 = 안정된 어휘(`spec.routing`·`spec.db`). 새 provider
 ## 스키마
 
 `values.schema.json` = values 계약. 검증 = helm + CI lint(`conftest`), **CLI 검증 안 함**(검증은 CI 의 몫).
+
+## License
+
+[MIT](LICENSE) © 2026 BetweenBits, Jonghyeon Park
