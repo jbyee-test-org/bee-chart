@@ -1,10 +1,10 @@
-{{- /* 이미지 = registry(values-env) / image.name(module.yaml) + digest(prod) | tag(local).
-       image 생략 = **workload 없는 schema 모듈**(G21) → Deployment 렌더 안 함(db.migrations·grants 만 소유). */ -}}
+{{- /* 이미지 = registry / image.name + digest(prod) | tag(local).
+       image 생략 = 워크로드 없는 schema 전용 모듈 → Deployment 렌더 안 함(db.migrations·grants 만 소유). */ -}}
 {{- if .Values.spec.image }}
 {{- $tagref := printf ":%s" (.Values.imageTag | default "latest") -}}
 {{- if .Values.imageDigest }}{{ $tagref = printf "@%s" .Values.imageDigest }}{{ end -}}
-{{- /* G37 리소스: spec.uses(논리 참조) → .Values.resources(platform 프로파일 — bee 전달·values override)
-       룩업·렌더(rule 1 — 파생은 차트). compute→container.resources · storage→PVC+mount(+Recreate). */ -}}
+{{- /* 리소스: spec.uses(논리 참조) → .Values.resources(플랫폼 프로파일 — bee 가 전달·values override)
+       를 차트가 룩업·렌더. compute→container.resources · storage→PVC+mount(+Recreate). */ -}}
 {{- $u := .Values.spec.uses | default dict -}}
 {{- $res := .Values.resources | default dict -}}
 apiVersion: apps/v1
@@ -17,7 +17,7 @@ metadata:
 spec:
   replicas: 1
   {{- if $u.storage }}
-  strategy: { type: Recreate }   {{- /* RWO PVC — 롤링 시 두 pod 가 같은 볼륨 못 붙음(G15 precedent) */}}
+  strategy: { type: Recreate }   {{- /* RWO PVC — 롤링 시 두 pod 가 같은 볼륨 못 붙음 */}}
   {{- end }}
   selector:
     matchLabels:

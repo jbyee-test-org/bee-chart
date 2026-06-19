@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "bee-module merged values (module.yaml + values-<env>)",
-  "description": "helm 에 -f module.yaml -f values-<env>.yaml 로 병합 입력되는 문서의 계약. required 는 최소만 — 어휘 확장은 additive(GENESIS G 어휘 로드맵).",
+  "description": "helm 에 -f module.yaml -f values-<env>.yaml 로 병합 입력되는 문서의 계약. required 는 최소만 — 필드는 호환되게(additive) 확장된다.",
   "type": "object",
   "required": [
     "metadata",
@@ -24,7 +24,7 @@
     },
     "spec": {
       "type": "object",
-      "description": "image 생략 시 workload 없는 schema 모듈(G21) — Deployment 미렌더, db.migrations 만 소유.",
+      "description": "image 생략 시 workload 없는 schema-전용 모듈 — Deployment 를 렌더하지 않고 db.migrations 만 소유한다.",
       "required": [
         "chart"
       ],
@@ -52,7 +52,7 @@
               "minLength": 1
             }
           },
-          "description": "모듈의 chart 버전 pin (G6 — 모듈 pin 일원화). 불일치는 CLI 경고 + CI lint."
+          "description": "모듈의 chart 버전 pin. 불일치 시 CLI 가 경고하고 CI lint 가 검증한다."
         },
         "product": {
           "type": "string"
@@ -65,7 +65,7 @@
         },
         "uses": {
           "type": "object",
-          "description": "리소스 = 논리 참조(G37) → platform `resources` 프로파일. origin-free(규칙 4) — 구체값은 platform/values. chart 가 룩업·렌더.",
+          "description": "리소스를 논리 프로파일명으로 참조 → platform 의 `resources` 프로파일에 매칭. 모듈은 배포 위치에 무지하고(구체값은 platform/values 가 가짐), chart 가 룩업·렌더한다.",
           "properties": {
             "compute": { "type": "string", "description": "platform resources.compute 프로파일명(small·…)" },
             "storage": {
@@ -122,12 +122,12 @@
         },
         "db": {
           "type": "object",
-          "description": "db 어휘(0.4.0, G14·G18 · target=G44) — target=db 방언(모듈-선택, 기본값 없음·필수), name=(kind,name) 공유 그룹(B안), schema=owner 소유 스키마 마커(grant 불변식), migrations=SQL 디렉토리, grants=cross-schema 명시 선언.",
+          "description": "db 어휘 — target=db 방언(모듈이 선택, 기본값 없음·필수), name=공유 그룹(kind,name), schema=이 모듈이 소유하는 스키마 마커, migrations=SQL 디렉토리, grants=cross-schema 명시 선언.",
           "properties": {
             "target": {
               "type": "string",
               "enum": ["psql", "mysql"],
-              "description": "db 방언(G44) — 모듈이 *선택*(자기 SQL 이 방언-종속). platform provides.db[].target 에 매칭. 기본값 없음 — 미선언 시 실패."
+              "description": "db 방언 — 모듈이 선택한다(자기 SQL 이 방언에 종속되므로). platform provides.db[].target 에 매칭. 기본값 없음 — 미선언 시 실패."
             },
             "name": {
               "type": "string",
@@ -136,7 +136,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "description": "이 모듈이 소유(migrations 가 생성)하는 스키마 — cross-schema grant 의 owner 마커(G18①). member 는 생략."
+              "description": "이 모듈이 소유(migrations 가 생성)하는 스키마 — cross-schema grant 의 owner 마커. 소유하지 않으면 생략."
             },
             "migrations": {
               "type": "string"
@@ -172,7 +172,7 @@
     "namespace": {
       "type": "string",
       "minLength": 1,
-      "description": "배치 좌표 — bee up/publish 가 platform product→ns 룩업으로 주입(G12④). 모듈 파일에 쓰지 않는다."
+      "description": "배치 좌표 — bee 가 platform 의 product→namespace 룩업으로 주입한다. 모듈 파일에 직접 쓰지 않는다."
     },
     "env": {
       "type": "string",
@@ -221,15 +221,15 @@
     },
     "dbPassword": {
       "type": "string",
-      "description": "데모 — 실환경 ESO(D13)"
+      "description": "데모용 — 실환경에서는 External Secrets Operator(ESO) 권장."
     },
     "dbMigrationsHash": {
       "type": "string",
-      "description": "마이그레이션 페이로드(SQL+grants) content-hash — bee 가 좌표로 주입(G18②). Flyway Job 이름 접미사가 되어 내용 변경 시에만 재실행. 모듈 파일에 쓰지 않는다."
+      "description": "마이그레이션 페이로드(SQL+grants) content-hash — bee 가 주입한다. Flyway Job 이름 접미사가 되어 내용 변경 시에만 재실행된다. 모듈 파일에 쓰지 않는다."
     },
     "resources": {
       "type": "object",
-      "description": "리소스 프로파일 catalog(G37) — platform.yaml spec.resources 를 bee 가 전달(values-<env> override). chart 가 spec.uses 로 룩업. compute={profile:{requests,limits}} · storage={profile:{storageClass,size}}.",
+      "description": "리소스 프로파일 catalog — platform.yaml 의 spec.resources 를 bee 가 전달한다(values-<env> 로 override 가능). chart 가 spec.uses 로 룩업. compute={profile:{requests,limits}} · storage={profile:{storageClass,size}}.",
       "properties": {
         "compute": { "type": "object" },
         "storage": { "type": "object" }

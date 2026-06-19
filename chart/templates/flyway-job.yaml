@@ -1,9 +1,9 @@
-{{- /* db 어휘 → 모듈별 Flyway Job (G14③ — 모듈별 history, 전역 합집합은 Phase 4 재론).
-       음수 sync-wave 로 앱(wave 0) 보다 먼저(G15). SQL 은 bee 가 kubectl 위임으로 만든
-       <module>-migrations ConfigMap(G14②) + chart 파생 grants ConfigMap.
-       **Job 이름에 content-hash 접미사(G18②)** — 내용(SQL+grants) 변경 시에만 이름이 바뀌어
-       재실행되고, 무변경이면 같은 이름 = no-op(재실행 루프 없음). 옛 해시 Job 은 prune(아웃터=
-       ArgoCD, 인너=bee up 라벨 셀렉터). dbMigrationsHash 는 bee 가 좌표로 주입(migrationWave 동류). */ -}}
+{{- /* db 선언 → 모듈별 Flyway Job. 모듈마다 자기 history 테이블을 가진다.
+       음수 sync-wave 로 앱(wave 0) 보다 먼저 실행된다. SQL 은 bee 가 만든
+       <module>-migrations ConfigMap + chart 파생 grants ConfigMap 에서 온다.
+       **Job 이름에 content-hash 접미사** — 내용(SQL+grants) 이 바뀔 때만 이름이 바뀌어
+       재실행되고, 무변경이면 같은 이름 = no-op(재실행 루프 없음). 옛 해시 Job 은 정리된다(공유환경=
+       ArgoCD, 로컬=bee up 라벨 셀렉터). dbMigrationsHash 는 bee 가 좌표로 주입한다. */ -}}
 {{- with .Values.spec.db }}
 apiVersion: batch/v1
 kind: Job
@@ -17,11 +17,11 @@ metadata:
     {{- end }}
   annotations:
     # 마이그레이션은 **음수 wave** — 앱(wave 0) 보다 먼저, Ingress health 게이트와 무관하게 실행.
-    # 순서 = 의존성 깊이(G14③ cross-module): migrationWave = -100 + depth, bee resolver 주입.
+    # 순서 = 의존성 깊이(cross-module): migrationWave = -100 + depth, bee 가 주입.
     # CM(-200) < hello(-100) < web(-99) < 앱(0). 의존 모듈이 먼저 migrate → cross-schema grant 성립.
     argocd.argoproj.io/sync-wave: {{ $.Values.migrationWave | default -100 | quote }}
     # Job 은 immutable — wave/spec 변경(예: 의존 그래프 변경으로 migrationWave 가 SQL 무변경인데 바뀜)을
-    # ArgoCD 가 in-place 갱신 못 해 sync 가 wedge 된다(G32 finding b). Replace 단독은 kubectl replace(in-place)
+    # ArgoCD 가 in-place 갱신 못 해 sync 가 멈춘다. Replace 단독은 kubectl replace(in-place)
     # 라 immutable Job.spec.selector 에서 거부됨 → Force 동반(= kubectl replace --force = delete+recreate).
     argocd.argoproj.io/sync-options: Replace=true,Force=true
 spec:
@@ -33,19 +33,19 @@ spec:
         - name: flyway
           image: flyway/flyway:10-alpine
           args:
-            {{- /* G44 db 코덱: -url(provider 데이터+좌표)·-schemas(target-aware)는 _db.tpl 이 dispatch.
+            {{- /* db 코덱: -url(provider 데이터+좌표)·-schemas(target-aware)는 _db.tpl 이 dispatch.
                    벤더 if 문 없음 — psql/mysql 분기는 헬퍼 안. migration SQL 은 모듈 소유(단일-target, 평면). */}}
             - -url={{ include "bee.db.url" $ }}
             - -user={{ $.Values.dbUser | default "bee" }}
-            - -password={{ $.Values.dbPassword | default "bee-demo" }}{{- /* 데모 — 실환경은 ESO(D13) */}}
+            - -password={{ $.Values.dbPassword | default "bee-demo" }}{{- /* 데모용 기본값 — 실환경은 외부 시크릿(ESO)으로 주입 */}}
             - -connectRetries=30
-            {{- /* A안(G34): 스키마 컨텍스트를 연결 시점에 결정화 — psql=schema,public(search_path race 제거) ·
+            {{- /* 스키마 컨텍스트를 연결 시점에 결정화 — psql=schema,public(search_path 경쟁 제거) ·
                    mysql=schema(=database). 빈값(mysql·schema 미선언)이면 -schemas 생략. */}}
             {{- $schemas := include "bee.db.schemas" $ }}
             {{- if $schemas }}
             - -schemas={{ $schemas }}
             {{- end }}
-            - -table=flyway_history_{{ $.Release.Name }}{{- /* 모듈별 history (G14③) — 첫 -schemas 에 생성 */}}
+            - -table=flyway_history_{{ $.Release.Name }}{{- /* 모듈별 history 테이블 — 첫 -schemas 에 생성 */}}
             - -locations={{ if .migrations }}filesystem:/sql{{ end }}{{ if and .migrations .grants }},{{ end }}{{ if .grants }}filesystem:/grants{{ end }}
             - -baselineOnMigrate=true
             - migrate

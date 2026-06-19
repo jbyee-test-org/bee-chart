@@ -1,4 +1,4 @@
-{{- /* routing kong provider 의 부속 CR — auth/rateLimit → KongPlugin. **코덱 가드(G28 ③)**:
+{{- /* routing kong provider 의 부속 CR — auth/rateLimit → KongPlugin. 코덱 가드:
        provider=kong 일 때만 렌더(nginx 는 ingress 주석으로, 부속 CR 없음). */ -}}
 {{- if eq (include "bee.routing.provider" $) "kong" }}
 {{- range $i, $r := .Values.spec.routing }}

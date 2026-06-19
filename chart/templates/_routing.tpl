@@ -1,7 +1,8 @@
-{{/* G28 ③ provider-rendering 코덱 (routing) — capability `routing` 을 provider 별 렌더로 dispatch.
-     provider = platform.provides.routing.provider(G36, bee 가 .Values.provides 로 전달). **seam 인터페이스 =
-     동결 어휘 `spec.routing`** — 투기 아님(어휘는 ①, 안정). provider 템플릿이 ingress class·주석·부속 CR
-     (kong=KongPlugin)을 소유 = pluggability(kong↔nginx 다르게 렌더). 어휘·출력 계약 동일, 경계: 선언+렌더(G26). */}}
+{{/* routing 코덱 — 모듈의 `spec.routing` 선언을 라우팅 provider 별 매니페스트로 렌더한다.
+     provider 는 platform.provides.routing.provider 에서 오고, bee 가 .Values.provides 로 전달한다.
+     모듈이 보는 인터페이스는 provider 와 무관한 `spec.routing` 한 가지이며, provider 템플릿이
+     ingress class·주석·부속 CR(kong=KongPlugin)을 소유해 provider 마다 다르게 렌더한다(kong↔nginx).
+     모듈 입력과 출력 계약은 provider 가 바뀌어도 동일하다. */}}
 
 {{- define "bee.routing.provider" -}}
 {{- (((.Values.provides | default dict).routing) | default dict).provider | default "kong" -}}
