@@ -6,4 +6,4 @@ description: >-
   공식 검증은 CI lint 가 맡는다. CLI 는 이 차트를 `helm template` 으로 부를 뿐(기계적 배치).
   모듈은 spec.chart.version 으로 이 차트를 pin 한다.
 type: application
-version: 0.5.9
+version: 1.0.0
