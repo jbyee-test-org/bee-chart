@@ -7,3 +7,7 @@ description: >-
   모듈은 spec.chart.version 으로 이 차트를 pin 한다.
 type: application
 version: 1.0.0
+# 발행 레포 선언 — helm 이 sources[0] 을 OCI org.opencontainers.image.source 라벨로 매핑.
+# GitHub 이 이 라벨로 패키지를 이 레포에 연결하므로, 발행 레포의 GITHUB_TOKEN 이 push 권한을 갖는다.
+sources:
+  - https://github.com/jbyee-test-org/bee-chart
